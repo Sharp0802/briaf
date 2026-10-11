@@ -11,6 +11,3 @@ allow = [
 
 [bans]
 multiple-versions = "deny"
-skip = [
-    { name = "read-fonts" }
-]
