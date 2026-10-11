@@ -5,6 +5,8 @@ extern crate alloc;
 
 mod fract;
 mod style;
+mod text;
 
 pub use fract::*;
 pub use style::*;
+pub use text::*;
