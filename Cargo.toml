@@ -5,9 +5,15 @@ edition = "2024"
 rust-version = "1.85.0"
 license = "MIT OR Apache-2.0"
 
+[features]
+default = ["std"]
+std = ["harfrust/std", "skrifa/std", "zeno/std"]
+libm = ["harfrust/libm", "skrifa/libm", "zeno/libm"]
+
 [dependencies]
-hashbrown = "0.17"
-harfrust = "0.13"
+harfrust = { version = "0.13", default-features = false }
+skrifa = { version = "0.48", default-features = false }
+zeno = { version = "0.3", default-features = false }
 
 [dev-dependencies]
 criterion = "0.8"
