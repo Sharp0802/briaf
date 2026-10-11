@@ -1,0 +1,10 @@
+[toolchain]
+channel = "stable"
+profile = "minimal"
+components = [
+    "clippy",
+    "rust-analyzer",
+    "rust-src",
+    "rustfmt",
+    "llvm-tools-preview",
+]
