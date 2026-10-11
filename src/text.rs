@@ -99,7 +99,7 @@ impl Text {
 
     /// Appends given span at last.
     ///
-    /// It's same to [`insert`] with using index as `self.len()`.
+    /// Equivalent to calling [`Self::insert`] with `self.len()` as the index.
     pub fn append(&mut self, span: Span) {
         todo!()
     }
@@ -120,7 +120,8 @@ impl Text {
     ///
     /// - The start of range is larger than the end of range.
     /// - The end of range is out of `..=self.len()`.
-    /// - The end or start of range is not valid glyph boundary.
+    /// - The start of range is not a valid glyph boundary.
+    /// - The end of range is not a valid glyph boundary.
     pub fn remove(&mut self, range: Range<usize>) {
         self.assert_range(range);
 
@@ -135,7 +136,8 @@ impl Text {
     ///
     /// - The start of range is larger than the end of range.
     /// - The end of range is out of `..=self.len()`.
-    /// - The end or start of range is not valid glyph boundary.
+    /// - The start of range is not a valid glyph boundary.
+    /// - The end of range is not a valid glyph boundary.
     pub fn style<F>(&mut self, range: Range<usize>, patch: F)
     where
         F: Fn(&mut SpanStyle),
