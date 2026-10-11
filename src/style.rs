@@ -7,7 +7,7 @@ use crate::{FontChainId, Fract};
 pub struct TextStyle {
     /// Maximum width of the paragraph, in pixels.
     ///
-    /// Ignored if it has negative value.
+    /// Ignored if it is zero or negative.
     pub width: Option<Fract>,
     /// Text alignment.
     ///
@@ -25,6 +25,31 @@ pub struct TextStyle {
     ///
     /// Ignored if it has negative value.
     pub line_spacing: Fract,
+}
+
+impl TextStyle {
+    pub(crate) fn norm(self) -> Self {
+        let width = match self.width {
+            Some(v) if v > Fract::ZERO => Some(v),
+            _ => None,
+        };
+
+        let line_spacing = self.line_spacing.max(0.0);
+
+        if width.is_none() {
+            Self {
+                width,
+                line_spacing,
+                ..Default::default()
+            }
+        } else {
+            Self {
+                width,
+                line_spacing,
+                ..self
+            }
+        }
+    }
 }
 
 /// An alignment of the text.

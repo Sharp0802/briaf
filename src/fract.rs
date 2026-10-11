@@ -6,6 +6,9 @@ use core::ops::{Add, AddAssign, Div, Mul, MulAssign, Rem, RemAssign, Sub, SubAss
 pub struct Fract(i32);
 
 impl Fract {
+    /// A zero.
+    pub const ZERO: Self = Self(0);
+
     /// Creates a new [`Fract`] from [`f32`].
     ///
     /// Note that precision is not guarenteed.

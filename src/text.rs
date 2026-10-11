@@ -2,16 +2,19 @@ use core::ops::Range;
 
 use crate::{SpanStyle, TextStyle};
 
+/// A text span.
 #[derive(Debug)]
 pub struct Span {
     style: SpanStyle,
+    // todo
 }
 
 impl Span {
     /// Creates a new [`Span`].
     #[must_use]
     pub fn new(style: SpanStyle) -> Self {
-        Self { style }
+        let style = style.norm();
+        todo!()
     }
 
     /// Returns the length, in bytes.
@@ -43,16 +46,19 @@ impl Span {
     }
 }
 
+/// A text block.
 #[derive(Debug)]
 pub struct Text {
     style: TextStyle,
+    // todo
 }
 
 impl Text {
     /// Creates a new [`Text`].
     #[must_use]
     pub fn new(style: TextStyle) -> Self {
-        Self { style }
+        let style = style.norm();
+        todo!()
     }
 
     /// Returns the length, in bytes.
