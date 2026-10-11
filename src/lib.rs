@@ -3,10 +3,12 @@
 
 extern crate alloc;
 
+mod font;
 mod fract;
 mod style;
 mod text;
 
+pub use font::*;
 pub use fract::*;
 pub use style::*;
 pub use text::*;

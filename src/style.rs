@@ -1,6 +1,6 @@
 use core::hash::Hash;
 
-use crate::Fract;
+use crate::{FontChainId, Fract};
 
 /// A style of the text.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
@@ -60,6 +60,8 @@ pub enum Wrap {
 /// A style of the span.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 pub struct SpanStyle {
+    /// Font chain.
+    pub font: Option<FontChainId>,
     /// Font size, in pixels, clamped to `1..` if out of that.
     pub size: Fract,
     /// Font weight, clamped to `1..1000` if out of that.
@@ -76,6 +78,7 @@ pub struct SpanStyle {
 impl SpanStyle {
     pub(crate) const fn norm(self) -> Self {
         Self {
+            font: self.font,
             size: self.size.max(1.0),
             weight: self.weight.clamp(1.0, 1000.0),
             tilt: match self.tilt {
