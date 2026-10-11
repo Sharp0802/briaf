@@ -4,7 +4,62 @@ use crate::Fract;
 
 /// A style of the text.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
-pub struct Style {
+pub struct TextStyle {
+    /// Maximum width of the paragraph, in pixels.
+    ///
+    /// Ignored if it has negative value.
+    pub width: Option<Fract>,
+    /// Text alignment.
+    ///
+    /// Ignored if `width` is `None`.
+    pub align: Align,
+    /// Whether the full justification is used.
+    ///
+    /// Ignored if `width` is `None`.
+    pub strech: bool,
+    /// Wrapping method for overflows.
+    ///
+    /// Ignored if `width` is `None`.
+    pub wrap: Wrap,
+    /// Extra line spacing, in pixels.
+    ///
+    /// Ignored if it has negative value.
+    pub line_spacing: Fract,
+}
+
+/// An alignment of the text.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+pub enum Align {
+    /// Follows the default alignment of the language.
+    #[default]
+    Default,
+    /// Aligns to the left.
+    Left,
+    /// Aligns to the right.
+    Right,
+    /// Aligns to the middle.
+    Middle,
+}
+
+/// A text wrapping method.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+pub enum Wrap {
+    /// Ignores overflows.
+    No,
+    /// Moves whole words to next lines.
+    ///
+    /// It breaks the word if a word is wider than maximum width.
+    #[default]
+    Word,
+    /// Inserts breaks between letters.
+    ///
+    /// It overflows if a letter is wider than maximum width.
+    Letter,
+}
+
+/// A style of the span.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+pub struct SpanStyle {
     /// Font size, in pixels, clamped to `1..` if out of that.
     pub size: Fract,
     /// Font weight, clamped to `1..1000` if out of that.
@@ -18,7 +73,7 @@ pub struct Style {
     pub spacing: Fract,
 }
 
-impl Style {
+impl SpanStyle {
     pub(crate) const fn norm(self) -> Self {
         Self {
             size: self.size.max(1.0),
