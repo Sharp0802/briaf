@@ -6,11 +6,21 @@ rust-version = "1.85.0"
 license = "MIT OR Apache-2.0"
 
 [features]
-default = ["libm"]
-std = ["harfrust/std", "skrifa/std", "zeno/std"]
-libm = ["harfrust/libm", "skrifa/libm", "zeno/libm"]
+default = ["std"]
+std = [
+    "fontdb/default",
+    "harfrust/std",
+    "skrifa/std",
+    "zeno/std",
+]
+libm = [
+    "harfrust/libm",
+    "skrifa/libm",
+    "zeno/libm",
+]
 
 [dependencies]
+fontdb = { version = "0.24", default-features = false }
 harfrust = { version = "0.14", default-features = false }
 skrifa = { version = "0.48", default-features = false }
 zeno = { version = "0.3", default-features = false }
