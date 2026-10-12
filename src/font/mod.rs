@@ -35,6 +35,11 @@ impl Fonts {
     /// Loads fonts from the specified file.
     ///
     /// Will load all fonts in case of a font collection.
+    ///
+    /// # Errors
+    ///
+    /// Returns an `Err` if IO operation failed.
+    /// See [`std::io::Error`].
     #[cfg(feature = "std")]
     pub fn load_file(&mut self, path: &Path) -> Result<(), std::io::Error> {
         self.db.load_font_file(path)?;
