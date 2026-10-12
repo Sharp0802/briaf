@@ -1,3 +1,5 @@
+use alloc::string::String;
+use alloc::vec::Vec;
 use core::hash::Hash;
 use core::ops::Deref;
 use hashbrown::Equivalent;

@@ -1,4 +1,5 @@
 use alloc::sync::Arc;
+use alloc::vec::Vec;
 use fontdb::{Database, ID, Style, Weight};
 
 use crate::{Query, Tilt};
