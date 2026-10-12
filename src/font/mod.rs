@@ -15,6 +15,7 @@ pub use name::{Family, FontName};
 use query::OwnedQuery;
 pub use query::{Hint, Query};
 
+/// A font registry.
 #[derive(Clone, Debug)]
 pub struct Fonts {
     db: Database,
@@ -22,6 +23,8 @@ pub struct Fonts {
 }
 
 impl Fonts {
+    /// Creates a new [`Fonts`].
+    #[must_use]
     pub fn new() -> Self {
         Self {
             db: Database::new(),
@@ -29,6 +32,9 @@ impl Fonts {
         }
     }
 
+    /// Loads fonts from the specified file.
+    ///
+    /// Will load all fonts in case of a font collection.
     #[cfg(feature = "std")]
     pub fn load_file(&mut self, path: &Path) -> Result<(), std::io::Error> {
         self.db.load_font_file(path)?;
@@ -36,6 +42,9 @@ impl Fonts {
         Ok(())
     }
 
+    /// Loads fonts from given bytes.
+    ///
+    /// Will load all fonts in case of a font collection.
     pub fn load<T>(&mut self, bytes: T)
     where
         T: AsRef<[u8]> + Sync + Send + 'static,
@@ -45,6 +54,7 @@ impl Fonts {
         self.cache.clear();
     }
 
+    /// Aliases special font names as given.
     pub fn with(&mut self, family: Family, name: &str) {
         match family {
             Family::Serif => self.db.set_serif_family(name),
@@ -57,6 +67,7 @@ impl Fonts {
         self.cache.clear();
     }
 
+    /// Resolves a query within loaded fonts.
     pub fn resolve(&mut self, query: &Query) -> FontChain {
         match self.cache.entry_ref(query) {
             EntryRef::Occupied(entry) => entry.get().clone(),

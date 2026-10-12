@@ -6,20 +6,26 @@ use hashbrown::Equivalent;
 
 use crate::{FontName, Tilt};
 
+/// A hint for querying fonts.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 pub struct Hint {
+    /// Font weight.
     pub weight: Option<u16>,
+    /// Font tilting.
     pub tilt: Option<Tilt>,
 }
 
+/// A query of the font chain.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Query<'a> {
+    /// Font names.
     pub names: &'a [FontName<'a>],
+    /// Query hint.
     pub hint: Hint,
 }
 
 impl Query<'_> {
-    pub(crate) fn to_owned(&self) -> OwnedQuery {
+    pub(crate) fn to_owned(self) -> OwnedQuery {
         OwnedQuery {
             names: self.names.iter().copied().map(Into::into).collect(),
             hint: self.hint,
@@ -43,8 +49,8 @@ impl Equivalent<OwnedQuery> for Query<'_> {
             && self
                 .names
                 .iter()
-                .map(|name| name.deref())
-                .eq(key.names.iter().map(|name| name.as_str()))
+                .map(Deref::deref)
+                .eq(key.names.iter().map(String::as_str))
     }
 }
 

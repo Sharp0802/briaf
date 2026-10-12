@@ -106,10 +106,7 @@ impl SpanStyle {
             font: self.font,
             size: self.size.max(1.into()),
             weight: self.weight.clamp(1.into(), 1000.into()),
-            tilt: match self.tilt {
-                Some(tilt) => Some(tilt.norm()),
-                None => None,
-            },
+            tilt: self.tilt.map(Tilt::norm),
             color: self.color.norm(),
             spacing: self.spacing.max(Fract::ZERO),
         }

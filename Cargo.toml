@@ -6,14 +6,14 @@ rust-version = "1.85.0"
 license = "MIT OR Apache-2.0"
 
 [features]
-default = ["std"]
+default = ["no_std"]
 std = [
     "fontdb/default",
     "harfrust/std",
     "skrifa/std",
     "zeno/std",
 ]
-libm = [
+no_std = [
     "harfrust/libm",
     "skrifa/libm",
     "zeno/libm",

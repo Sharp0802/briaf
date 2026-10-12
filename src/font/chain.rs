@@ -4,11 +4,12 @@ use fontdb::{Database, ID, Style, Weight};
 
 use crate::{Query, Tilt};
 
+/// A font chain.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct FontChain(Arc<[ID]>);
 
 impl FontChain {
-    pub fn resolve(db: &Database, query: &Query) -> Self {
+    pub(crate) fn resolve(db: &Database, query: &Query) -> Self {
         let mut chain = Vec::with_capacity(query.names.len());
 
         for &name in query.names {
