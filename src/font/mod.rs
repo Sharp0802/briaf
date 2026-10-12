@@ -11,7 +11,7 @@ mod name;
 mod query;
 
 pub use chain::FontChain;
-pub use name::FontName;
+pub use name::{Family, FontName};
 use query::OwnedQuery;
 pub use query::{Hint, Query};
 
@@ -42,6 +42,18 @@ impl Fonts {
     {
         let source = fontdb::Source::Binary(Arc::new(bytes));
         self.db.load_font_source(source);
+        self.cache.clear();
+    }
+
+    pub fn with(&mut self, family: Family, name: &str) {
+        match family {
+            Family::Serif => self.db.set_serif_family(name),
+            Family::SansSerif => self.db.set_sans_serif_family(name),
+            Family::Cursive => self.db.set_cursive_family(name),
+            Family::Fantasy => self.db.set_fantasy_family(name),
+            Family::Monospace => self.db.set_monospace_family(name),
+        }
+
         self.cache.clear();
     }
 
