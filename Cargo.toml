@@ -6,7 +6,7 @@ rust-version = "1.85.0"
 license = "MIT OR Apache-2.0"
 
 [features]
-default = ["no_std"]
+default = ["std"]
 std = [
     "fontdb/default",
     "harfrust/std",
@@ -16,6 +16,7 @@ std = [
 no_std = [
     "harfrust/libm",
     "skrifa/libm",
+    "unicode-segmentation/no_std",
     "zeno/libm",
 ]
 
@@ -24,6 +25,7 @@ fontdb = { version = "0.24", default-features = false }
 harfrust = { version = "0.14", default-features = false }
 hashbrown = "0.17"
 skrifa = { version = "0.48", default-features = false }
+unicode-segmentation = "1.13"
 zeno = { version = "0.3", default-features = false }
 
 [dev-dependencies]
