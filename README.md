@@ -1,5 +1,8 @@
 # `briaf`
 
+> [!NOTE]
+> Code generated using AI is not allowed!
+
 `briaf` is a crate for text rendering,
 with a goal for the intuitive usage.
 
