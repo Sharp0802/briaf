@@ -30,14 +30,6 @@ impl Fract {
         let int = (self.0 / 6) as f32;
         int + frt * (1.0 / 6.0)
     }
-
-    pub(crate) const fn max(self, other: f32) -> Self {
-        Self::new(self.to_f32().max(other))
-    }
-
-    pub(crate) const fn clamp(self, min: f32, max: f32) -> Self {
-        Self::new(self.to_f32().clamp(min, max))
-    }
 }
 
 impl AddAssign for Fract {
@@ -145,6 +137,12 @@ impl Rem for Fract {
     /// - The numerator of `self` is [`i32::MIN`] and the numerator of `rhs` is `-1`.
     fn rem(self, rhs: Self) -> Self::Output {
         Self(self.0 % rhs.0)
+    }
+}
+
+impl From<i32> for Fract {
+    fn from(value: i32) -> Self {
+        Self(value * 6)
     }
 }
 

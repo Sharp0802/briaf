@@ -34,7 +34,7 @@ impl TextStyle {
             _ => None,
         };
 
-        let line_spacing = self.line_spacing.max(0.0);
+        let line_spacing = self.line_spacing.max(Fract::ZERO);
 
         if width.is_none() {
             Self {
@@ -101,17 +101,17 @@ pub struct SpanStyle {
 }
 
 impl SpanStyle {
-    pub(crate) const fn norm(self) -> Self {
+    pub(crate) fn norm(self) -> Self {
         Self {
             font: self.font,
-            size: self.size.max(1.0),
-            weight: self.weight.clamp(1.0, 1000.0),
+            size: self.size.max(1.into()),
+            weight: self.weight.clamp(1.into(), 1000.into()),
             tilt: match self.tilt {
                 Some(tilt) => Some(tilt.norm()),
                 None => None,
             },
             color: self.color.norm(),
-            spacing: self.spacing.max(0.0),
+            spacing: self.spacing.max(Fract::ZERO),
         }
     }
 }
@@ -134,10 +134,10 @@ pub enum Tilt {
 }
 
 impl Tilt {
-    const fn norm(self) -> Self {
+    fn norm(self) -> Self {
         match self {
             Self::Italic => Self::Italic,
-            Self::Oblique(v) => Self::Oblique(v.clamp(-90.0, 90.0)),
+            Self::Oblique(v) => Self::Oblique(v.clamp((-90).into(), 90.into())),
         }
     }
 }
