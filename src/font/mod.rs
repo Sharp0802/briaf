@@ -68,11 +68,11 @@ impl Fonts {
     }
 
     /// Resolves a query within loaded fonts.
-    pub fn resolve(&mut self, query: &Query) -> FontChain {
-        match self.cache.entry_ref(query) {
+    pub fn resolve(&mut self, query: Query) -> FontChain {
+        match self.cache.entry_ref(&query) {
             EntryRef::Occupied(entry) => entry.get().clone(),
             EntryRef::Vacant(entry) => {
-                let chain = FontChain::resolve(&self.db, query);
+                let chain = FontChain::resolve(&self.db, &query);
                 let entry = entry.insert_entry_with_key(query.to_owned(), chain);
                 entry.get().clone()
             }
