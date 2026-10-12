@@ -1,6 +1,6 @@
 use core::hash::Hash;
 
-use crate::{FontChainId, Fract};
+use crate::{FontChain, Fract};
 
 /// A style of the text.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
@@ -83,10 +83,10 @@ pub enum Wrap {
 }
 
 /// A style of the span.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct SpanStyle {
     /// Font chain.
-    pub font: Option<FontChainId>,
+    pub font: FontChain,
     /// Font size, in pixels, clamped to `1..` if out of that.
     pub size: Fract,
     /// Font weight, clamped to `1..1000` if out of that.
