@@ -2,9 +2,9 @@ use core::hash::Hash;
 
 use crate::{FontChain, Fract};
 
-/// A style of the text.
+/// A style of the text block.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
-pub struct TextStyle {
+pub struct BlockStyle {
     /// Maximum width of the paragraph, in pixels.
     ///
     /// Ignored if it is zero or negative.
@@ -27,7 +27,7 @@ pub struct TextStyle {
     pub line_spacing: Fract,
 }
 
-impl TextStyle {
+impl BlockStyle {
     pub(crate) fn norm(self) -> Self {
         let width = match self.width {
             Some(v) if v > Fract::ZERO => Some(v),
@@ -82,9 +82,9 @@ pub enum Wrap {
     Letter,
 }
 
-/// A style of the span.
+/// A style of the text.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct SpanStyle {
+pub struct TextStyle {
     /// Font chain.
     pub font: FontChain,
     /// Font size, in pixels, clamped to `1..` if out of that.
@@ -100,7 +100,7 @@ pub struct SpanStyle {
     pub spacing: Fract,
 }
 
-impl SpanStyle {
+impl TextStyle {
     pub(crate) fn norm(self) -> Self {
         Self {
             font: self.font,
