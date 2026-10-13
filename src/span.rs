@@ -1,10 +1,12 @@
 use core::iter::FusedIterator;
 use core::ops::Index;
+use harfrust::{Buffer, ContentType, Direction};
 use unicode_segmentation::UnicodeSegmentation;
 
 /// A text span.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Debug)]
 pub struct Span {
+    buffer: Buffer,
     string: String,
     graphemes: Vec<usize>,
 }
@@ -12,8 +14,9 @@ pub struct Span {
 impl Span {
     /// Creates a new [`Span`].
     #[must_use]
-    pub const fn new() -> Self {
+    pub fn new() -> Self {
         Self {
+            buffer: Buffer::new(),
             string: String::new(),
             graphemes: Vec::new(),
         }
@@ -66,7 +69,11 @@ impl Span {
         } else if let Some(idx) = self.graphemes().find(at) {
             let next_string = self.string.split_off(at);
             let next_graphs = self.graphemes.split_off(idx + 1);
+
+            let buffer = split_unchecked(&mut self.buffer, self.string.len(), at);
+
             Some(Self {
+                buffer,
                 string: next_string,
                 graphemes: next_graphs,
             })
@@ -82,12 +89,75 @@ impl Default for Span {
     }
 }
 
+impl PartialEq for Span {
+    fn eq(&self, other: &Self) -> bool {
+        self.string == other.string
+    }
+}
+
 impl<T: AsRef<str>> From<T> for Span {
     fn from(value: T) -> Self {
         let mut this = Self::new();
         this.push_str(value.as_ref());
         this
     }
+}
+
+fn split_unchecked(lhs: &mut Buffer, len: usize, at: usize) -> Buffer {
+    let at32 = u32::try_from(at).expect("offset too large");
+
+    let is_shaped = lhs.content_type() == Some(ContentType::Glyphs);
+    let is_backward = is_shaped
+        && matches!(
+            lhs.direction(),
+            Direction::RightToLeft | Direction::BottomToTop
+        );
+
+    let infos = lhs.glyph_infos();
+    let n = infos.len();
+
+    let cut = if at == 0 {
+        if is_backward { n } else { 0 }
+    } else if at == len {
+        if is_backward { 0 } else { n }
+    } else if is_backward {
+        let i = infos
+            .iter()
+            .position(|g| g.cluster < at32)
+            .expect("boundary unavailable");
+
+        assert!(i == 0 || infos[i - 1].cluster != at32);
+
+        i
+    } else {
+        let i = infos
+            .iter()
+            .position(|g| g.cluster >= at32)
+            .expect("boundary unavailable");
+
+        assert!(infos[i].cluster == at32);
+
+        i
+    };
+
+    let mut rhs = Buffer::new();
+    rhs.set_direction(lhs.direction());
+    rhs.set_script(lhs.script());
+    rhs.set_language(lhs.language().cloned());
+    rhs.set_cluster_level(lhs.cluster_level());
+    rhs.set_flags(lhs.flags());
+    rhs.set_content_type(lhs.content_type());
+
+    assert!(rhs.push_glyph_infos(&lhs.glyph_infos()[cut..]));
+
+    if is_shaped {
+        rhs.glyph_positions_mut()
+            .copy_from_slice(&lhs.glyph_positions()[cut..]);
+    }
+
+    assert!(lhs.set_length(cut));
+
+    rhs
 }
 
 /// A grapheme clusters of the span.
