@@ -48,13 +48,13 @@ impl Span {
 
         self.string.push_str(str);
 
-        let done = self.graphemes.last().copied().unwrap_or(0);
-        let target = &self.string[done..];
-
-        self.graphemes.reserve(str.len());
-        for (i, grapheme) in target.grapheme_indices(true) {
-            self.graphemes.push(done + i + grapheme.len());
-        }
+        let start = self.graphemes.iter().rev().nth(1).copied().unwrap_or(0);
+        self.graphemes.pop();
+        self.graphemes.extend(
+            self.string[start..]
+                .grapheme_indices(true)
+                .map(|(i, g)| start + i + g.len()),
+        );
     }
 }
 
