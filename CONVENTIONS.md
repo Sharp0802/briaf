@@ -81,32 +81,3 @@ The following checks must pass with the repository's configured toolchain:
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
 ```
-
-## Variable names
-
-Encourage recognizable abbreviations when the type and surrounding context make
-the meaning clear. IDE type information supports concise variable names.
-
-| Prefer | Over |
-| --- | --- |
-| `rcx` for a `RenderContext` | `render_context` |
-| `cx` | `ctx` |
-| `tbl` | `tab` |
-
-Use abbreviations consistently and keep distinct roles distinguishable.
-
-## Tests
-
-Tests are allowed only for pure, in-memory collection data structures and their
-invariants, such as maps, arenas, and slot maps. Other pure code, including math
-and parsing, is outside this testing scope, as are rendering, I/O, and
-application workflows.
-
-Use only `proptest` property tests. Generate meaningful inputs or operation
-sequences and check collection invariants and behavior. The `#[test]` attribute
-inside `proptest!` is allowed. Do not add standalone example-based tests,
-snapshots, doctests, or other test frameworks.
-
-Keep the property set small and focused. Avoid redundant properties, fixed
-examples disguised as properties, and boilerplate tests for every method.
-Run the relevant property tests when changing a collection.
