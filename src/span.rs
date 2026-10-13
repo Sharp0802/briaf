@@ -1,12 +1,10 @@
 use core::iter::FusedIterator;
 use core::ops::Index;
-use harfrust::Buffer;
 use unicode_segmentation::UnicodeSegmentation;
 
 /// A text span.
 #[derive(Debug)]
 pub struct Span {
-    buffer: Buffer,
     string: String,
     graphemes: Vec<usize>,
 }
@@ -14,9 +12,8 @@ pub struct Span {
 impl Span {
     /// Creates a new [`Span`].
     #[must_use]
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
-            buffer: Buffer::new(),
             string: String::new(),
             graphemes: Vec::new(),
         }
@@ -45,6 +42,10 @@ impl Span {
 
     /// Appends a given string slice onto the end.
     pub fn push_str(&mut self, str: &str) {
+        if str.is_empty() {
+            return;
+        }
+
         self.string.push_str(str);
 
         let done = self.graphemes.last().copied().unwrap_or(0);
