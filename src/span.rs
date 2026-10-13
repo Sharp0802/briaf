@@ -1,9 +1,11 @@
+use alloc::string::String;
+use alloc::vec::Vec;
 use core::iter::FusedIterator;
 use core::ops::Index;
 use unicode_segmentation::UnicodeSegmentation;
 
 /// A text span.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Span {
     string: String,
     graphemes: Vec<usize>,
