@@ -108,30 +108,39 @@ impl<T: Split> Treap<T> {
     }
 
     fn split(&mut self, p: usize, key: usize) -> (usize, usize) {
-        let Some(pitem) = self.slab.get(p) else {
+        let Some(item) = self.slab.get(p) else {
             return (usize::MAX, usize::MAX);
         };
 
-        let lhs = self.slab.get(pitem.lhs).map_or(0, |lhs| lhs.len);
-        if key <= lhs {
-            let (ll, lr) = self.split(pitem.lhs, key);
-            self.slab[p].lhs = lr;
-            self.update(p);
-            (ll, p)
-        } else if (key - lhs) <= pitem.val.len() {
-            let cut = self.slab[p].val.split_off(key - lhs);
-            let new = self.alloc(cut);
-            self.slab[new].rhs = self.slab[p].rhs;
-            self.slab[p].rhs = usize::MAX;
-            self.update(new);
+        let lhs = item.lhs;
+        let rhs = item.rhs;
+        let val_len = item.val.len();
+
+        let lhs_len = self.slab.get(lhs).map_or(0, |item| item.len);
+
+        if key <= lhs_len {
+            let (ll, lr) = self.split(lhs, key);
+
+            self.slab[p].lhs = usize::MAX;
             self.update(p);
 
-            (p, new)
-        } else {
-            let (rl, rr) = self.split(pitem.rhs, key);
-            self.slab[p].rhs = rl;
+            (ll, self.merge(lr, p))
+        } else if key - lhs_len < val_len {
+            let cut = self.slab[p].val.split_off(key - lhs_len);
+
+            self.slab[p].rhs = usize::MAX;
             self.update(p);
-            (p, rr)
+
+            let new = self.alloc(cut);
+
+            (p, self.merge(new, rhs))
+        } else {
+            let (rl, rr) = self.split(rhs, key - lhs_len - val_len);
+
+            self.slab[p].rhs = usize::MAX;
+            self.update(p);
+
+            (self.merge(p, rl), rr)
         }
     }
 
@@ -189,9 +198,9 @@ const fn splitmix(x: usize) -> usize {
 }
 
 const fn splitmix64(x: u64) -> u64 {
-    let z = x + 0x9e37_79b9_7f4a_7c15;
-    let z = (z ^ (z >> 30)) * 0xbf58_476d_1ce4_e5b9;
-    let z = (z ^ (z >> 27)) * 0x94d0_49bb_1331_11eb;
+    let z = x.wrapping_add(0x9e37_79b9_7f4a_7c15);
+    let z = (z ^ (z >> 30)).wrapping_mul(0xbf58_476d_1ce4_e5b9);
+    let z = (z ^ (z >> 27)).wrapping_mul(0x94d0_49bb_1331_11eb);
     z ^ (z >> 31)
 }
 
@@ -326,7 +335,7 @@ mod tests {
                 Self::Remove(off, len) => {
                     let off = off % (mock.len() + 1);
                     let max = mock.len() - off;
-                    let len = ((len + 1) % (max + 1)) - 1;
+                    let len = *len % (max + 1);
 
                     let range = off..(off + len);
                     mock.drain(range.clone());
@@ -345,8 +354,8 @@ mod tests {
 
     fn arb_op() -> impl Strategy<Value = Op> {
         prop_oneof![
-            (any::<usize>(), any::<String>()).prop_map(|(off, str)| Op::Insert(off, str)),
-            (any::<usize>(), any::<usize>()).prop_map(|(off, len)| Op::Remove(off, len)),
+            (any::<usize>(), "[a-zA-Z0-9]{1,16}").prop_map(|(off, str)| Op::Insert(off, str)),
+            (any::<usize>(), 1..16usize).prop_map(|(off, len)| Op::Remove(off, len)),
         ]
         .boxed()
     }
