@@ -1,6 +1,8 @@
-mod slab;
-
+use core::hash::Hash;
+use core::iter::FusedIterator;
 use core::ops::Range;
+
+mod slab;
 
 use slab::Slab;
 
@@ -45,7 +47,7 @@ pub struct Treap<T> {
     root: usize,
 }
 
-impl<T: Split> Treap<T> {
+impl<T> Treap<T> {
     #[cfg(feature = "std")]
     pub fn new() -> Self {
         use core::hash::{BuildHasher, Hasher};
@@ -72,6 +74,13 @@ impl<T: Split> Treap<T> {
         self.slab.get(self.root).map_or(0, |root| root.len)
     }
 
+    #[must_use]
+    pub fn iter(&self) -> TreapIter<T> {
+        TreapIter::new(self)
+    }
+}
+
+impl<T: Split> Treap<T> {
     fn alloc(&mut self, val: T) -> usize {
         let id = self.slab.push(Item {
             len: val.len(),
@@ -185,3 +194,46 @@ const fn splitmix64(x: u64) -> u64 {
     let z = (z ^ (z >> 27)) * 0x94d0_49bb_1331_11eb;
     z ^ (z >> 31)
 }
+
+impl<T: PartialEq> PartialEq for Treap<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.iter().eq(other.iter())
+    }
+}
+
+impl<T: Eq> Eq for Treap<T> {}
+
+impl<T: Hash> Hash for Treap<T> {
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
+        for item in self.iter() {
+            item.hash(state);
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct TreapIter<'a, T> {
+    treap: &'a Treap<T>,
+}
+
+impl<'a, T> TreapIter<'a, T> {
+    fn new(treap: &'a Treap<T>) -> Self {
+        Self { treap }
+    }
+}
+
+impl<'a, T> Iterator for TreapIter<'a, T> {
+    type Item = &'a T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        todo!()
+    }
+}
+
+impl<'a, T> DoubleEndedIterator for TreapIter<'a, T> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        todo!()
+    }
+}
+
+impl<'a, T> FusedIterator for TreapIter<'a, T> {}
