@@ -52,9 +52,9 @@ impl TextBlock {
 
     /// Creates a new [`TextBlock`] with given salt value.
     #[must_use]
-    pub const fn with_salt(style: BlockStyle, salt: usize) -> Self {
+    pub fn with_salt(style: BlockStyle, salt: usize) -> Self {
         Self {
-            style,
+            style: style.norm(),
             parts: Treap::with_salt(salt),
         }
     }
@@ -69,12 +69,22 @@ impl TextBlock {
     ///
     /// Panics if `at` is not valid grapheme boundary.
     pub fn insert(&mut self, at: usize, text: &Text) {
+        let text = Text {
+            style: text.style.clone().norm(),
+            str: text.str,
+        };
+
         assert!(self.is_grapheme_boundary(at));
         todo!()
     }
 
     /// Appends given text at the end.
     pub fn push(&mut self, text: &Text) {
+        let text = Text {
+            style: text.style.clone().norm(),
+            str: text.str,
+        };
+
         todo!()
     }
 
