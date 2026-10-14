@@ -63,7 +63,7 @@ link. Include its definition in the same doc comment:
 /// [undefined behaviour]: https://doc.rust-lang.org/reference/behavior-considered-undefined.html
 ```
 
-## Code layout and checks
+## Code layout
 
 Spacing, line breaks, logical grouping, and column alignment are part of code
 readability. Follow rustfmt for ordinary code and use blank lines to separate
@@ -81,3 +81,11 @@ The following checks must pass with the repository's configured toolchain:
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
 ```
+
+## Tests
+
+Do not create tests without proptest. There are several reasons for that:
+First, if the case is not able to be reached without model-based proptest or
+fuzzing, it means the code structure or intended usage is misdesigned. Second,
+test functions only for special test cases often lead to very verbose,
+unreadable, and unmanagable codes.
