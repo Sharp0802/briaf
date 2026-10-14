@@ -65,7 +65,7 @@ impl<T> Treap<T> {
         Self {
             salt,
             slab: Slab::new(),
-            root: 0,
+            root: usize::MAX,
         }
     }
 
@@ -163,9 +163,9 @@ impl<T: Split> Treap<T> {
     }
 
     pub fn insert(&mut self, at: usize, val: T) {
+        let (l, r) = self.split(self.root, at);
         let id = self.alloc(val);
 
-        let (l, r) = self.split(self.root, at);
         let acc = self.merge(l, id);
         self.root = self.merge(acc, r);
     }
