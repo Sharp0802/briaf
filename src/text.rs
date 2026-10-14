@@ -1,6 +1,7 @@
 use core::ops::Range;
 
-use crate::{BlockStyle, TextStyle, Treap};
+use crate::treap::Split;
+use crate::{BlockStyle, Span, TextStyle, Treap};
 
 #[derive(Clone, Debug)]
 struct Part {
@@ -8,12 +9,30 @@ struct Part {
     range: Range<usize>,
 }
 
+impl Split for Part {
+    fn len(&self) -> usize {
+        self.range.len()
+    }
+
+    fn split_off(&mut self, at: usize) -> Self {
+        assert!(self.range.start <= at && at <= self.range.end);
+
+        let end = self.range.end;
+        self.range.end = at;
+
+        Self {
+            style: self.style.clone(),
+            range: at..end,
+        }
+    }
+}
+
 /// A styled text block.
 #[derive(Clone, Debug)]
 pub struct TextBlock {
     style: BlockStyle,
-    source: String,
-    parts: Treap<usize, Part>,
+    source: Span,
+    parts: Treap<Part>,
 }
 
 impl TextBlock {
@@ -31,7 +50,7 @@ impl TextBlock {
     pub const fn with_salt(style: BlockStyle, salt: usize) -> Self {
         Self {
             style,
-            source: String::new(),
+            source: Span::new(),
             parts: Treap::with_salt(salt),
         }
     }
