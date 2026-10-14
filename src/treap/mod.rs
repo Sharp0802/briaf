@@ -214,11 +214,38 @@ impl<T: Hash> Hash for Treap<T> {
 #[derive(Clone, Debug)]
 pub struct TreapIter<'a, T> {
     treap: &'a Treap<T>,
+    front: Vec<usize>,
+    back: Vec<usize>,
+    finished: bool,
 }
 
 impl<'a, T> TreapIter<'a, T> {
     fn new(treap: &'a Treap<T>) -> Self {
-        Self { treap }
+        let mut iter = Self {
+            treap,
+            front: Vec::new(),
+            back: Vec::new(),
+            finished: false,
+        };
+
+        iter.push_left(treap.root);
+        iter.push_right(treap.root);
+
+        iter
+    }
+
+    fn push_left(&mut self, mut id: usize) {
+        while let Some(item) = self.treap.slab.get(id) {
+            self.front.push(id);
+            id = item.lhs;
+        }
+    }
+
+    fn push_right(&mut self, mut id: usize) {
+        while let Some(item) = self.treap.slab.get(id) {
+            self.back.push(id);
+            id = item.rhs;
+        }
     }
 }
 
@@ -226,13 +253,51 @@ impl<'a, T> Iterator for TreapIter<'a, T> {
     type Item = &'a T;
 
     fn next(&mut self) -> Option<Self::Item> {
-        todo!()
+        if self.finished {
+            return None;
+        }
+
+        let Some(id) = self.front.pop() else {
+            self.finished = true;
+            return None;
+        };
+
+        let treap = self.treap;
+
+        if self.back.last().copied() == Some(id) {
+            self.finished = true;
+            self.front.clear();
+            self.back.clear();
+        } else {
+            self.push_left(treap.slab[id].rhs);
+        }
+
+        Some(&treap.slab[id].val)
     }
 }
 
 impl<'a, T> DoubleEndedIterator for TreapIter<'a, T> {
     fn next_back(&mut self) -> Option<Self::Item> {
-        todo!()
+        if self.finished {
+            return None;
+        }
+
+        let Some(id) = self.back.pop() else {
+            self.finished = true;
+            return None;
+        };
+
+        let treap = self.treap;
+
+        if self.front.last().copied() == Some(id) {
+            self.finished = true;
+            self.front.clear();
+            self.back.clear();
+        } else {
+            self.push_right(treap.slab[id].lhs);
+        }
+
+        Some(&treap.slab[id].val)
     }
 }
 
