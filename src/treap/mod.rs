@@ -21,16 +21,6 @@ impl Split for String {
     }
 }
 
-impl<T> Split for Vec<T> {
-    fn len(&self) -> usize {
-        self.len()
-    }
-
-    fn split_off(&mut self, at: usize) -> Self {
-        self.split_off(at)
-    }
-}
-
 #[derive(Clone, Debug)]
 struct Item<T> {
     len: usize,
