@@ -1,7 +1,7 @@
 use core::ops::Range;
 
 use crate::treap::Split;
-use crate::{BlockStyle, Span, TextStyle, Treap};
+use crate::{BlockStyle, TextStyle, Treap};
 
 #[derive(Clone, Debug)]
 struct Part {
@@ -31,7 +31,7 @@ impl Split for Part {
 #[derive(Clone, Debug)]
 pub struct TextBlock {
     style: BlockStyle,
-    source: Span,
+    source: String,
     parts: Treap<Part>,
 }
 
@@ -50,7 +50,7 @@ impl TextBlock {
     pub const fn with_salt(style: BlockStyle, salt: usize) -> Self {
         Self {
             style,
-            source: Span::new(),
+            source: String::new(),
             parts: Treap::with_salt(salt),
         }
     }
