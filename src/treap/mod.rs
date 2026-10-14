@@ -214,8 +214,7 @@ impl<T: Hash> Hash for Treap<T> {
 pub struct TreapIter<'a, T> {
     treap: &'a Treap<T>,
     front: Vec<usize>,
-    back: Vec<usize>,
-    finished: bool,
+    remaining: usize,
 }
 
 impl<'a, T> TreapIter<'a, T> {
@@ -223,12 +222,10 @@ impl<'a, T> TreapIter<'a, T> {
         let mut iter = Self {
             treap,
             front: Vec::new(),
-            back: Vec::new(),
-            finished: false,
+            remaining: treap.slab.len(),
         };
 
         iter.push_left(treap.root);
-        iter.push_right(treap.root);
 
         iter
     }
@@ -239,64 +236,30 @@ impl<'a, T> TreapIter<'a, T> {
             id = item.lhs;
         }
     }
-
-    fn push_right(&mut self, mut id: usize) {
-        while let Some(item) = self.treap.slab.get(id) {
-            self.back.push(id);
-            id = item.rhs;
-        }
-    }
 }
 
 impl<'a, T> Iterator for TreapIter<'a, T> {
     type Item = &'a T;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.finished {
-            return None;
-        }
-
-        let Some(id) = self.front.pop() else {
-            self.finished = true;
-            return None;
-        };
-
+        let id = self.front.pop()?;
         let treap = self.treap;
 
-        if self.back.last().copied() == Some(id) {
-            self.finished = true;
-            self.front.clear();
-            self.back.clear();
-        } else {
-            self.push_left(treap.slab[id].rhs);
-        }
+        self.push_left(treap.slab[id].rhs);
+        self.remaining -= 1;
 
         Some(&treap.slab[id].val)
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let len = self.len();
+        (len, Some(len))
+    }
 }
 
-impl<T> DoubleEndedIterator for TreapIter<'_, T> {
-    fn next_back(&mut self) -> Option<Self::Item> {
-        if self.finished {
-            return None;
-        }
-
-        let Some(id) = self.back.pop() else {
-            self.finished = true;
-            return None;
-        };
-
-        let treap = self.treap;
-
-        if self.front.last().copied() == Some(id) {
-            self.finished = true;
-            self.front.clear();
-            self.back.clear();
-        } else {
-            self.push_right(treap.slab[id].lhs);
-        }
-
-        Some(&treap.slab[id].val)
+impl<T> ExactSizeIterator for TreapIter<'_, T> {
+    fn len(&self) -> usize {
+        self.remaining
     }
 }
 
