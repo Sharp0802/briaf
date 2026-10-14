@@ -75,6 +75,20 @@ impl<T> Slab<T> {
     pub fn get_mut(&mut self, key: usize) -> Option<&mut T> {
         self.vec.get_mut(key)?.value.as_mut()
     }
+
+    /// Returns a mutable pointer without borrowing other slots.
+    #[must_use]
+    pub(super) fn get_mut_ptr(&mut self, key: usize) -> Option<*mut T> {
+        if key >= self.vec.len() {
+            return None;
+        }
+
+        // SAFETY: The key is in bounds, and only this slot is borrowed.
+        #[expect(unsafe_code)]
+        let slot = unsafe { &mut *self.vec.as_mut_ptr().add(key) };
+
+        slot.value.as_mut().map(core::ptr::from_mut)
+    }
 }
 
 impl<T> Index<usize> for Slab<T> {

@@ -1,3 +1,4 @@
+use core::fmt;
 use core::hash::Hash;
 use core::iter::FusedIterator;
 use core::ops::Range;
@@ -264,10 +265,9 @@ impl<T> ExactSizeIterator for TreapIter<'_, T> {
 
 impl<T> FusedIterator for TreapIter<'_, T> {}
 
-#[derive(Debug)]
 pub struct TreapIterMut<'a, T> {
     treap: &'a mut Treap<T>,
-    front: Vec<usize>,
+    front: Vec<&'a mut Item<T>>,
     remaining: usize,
 }
 
@@ -288,10 +288,25 @@ impl<'a, T> TreapIterMut<'a, T> {
     }
 
     fn push_left(&mut self, mut id: usize) {
-        while let Some(item) = self.treap.slab.get(id) {
-            self.front.push(id);
+        while let Some(item) = self.treap.slab.get_mut_ptr(id) {
+            // SAFETY: The exclusive treap borrow keeps the slab alive and fixed
+            // for 'a. Each node is visited once, including nodes held in front.
+            #[expect(unsafe_code)]
+            let item = unsafe { &mut *item };
+
             id = item.lhs;
+            self.front.push(item);
         }
+    }
+}
+
+impl<T: fmt::Debug> fmt::Debug for TreapIterMut<'_, T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // Formatting the treap would borrow values already yielded.
+        f.debug_struct("TreapIterMut")
+            .field("front", &self.front)
+            .field("remaining", &self.remaining)
+            .finish_non_exhaustive()
     }
 }
 
@@ -299,12 +314,12 @@ impl<'a, T> Iterator for TreapIterMut<'a, T> {
     type Item = &'a mut T;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let id = self.front.pop()?;
+        let item = self.front.pop()?;
 
-        self.push_left(self.treap.slab[id].rhs);
+        self.push_left(item.rhs);
         self.remaining -= 1;
 
-        Some(&mut self.treap.slab[id].val)
+        Some(&mut item.val)
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
@@ -370,6 +385,24 @@ mod tests {
     }
 
     proptest! {
+        #[test]
+        fn test_iter_mut_models(ops in prop::collection::vec(arb_op(), 1..64)) {
+            let mut mock = String::new();
+            let mut treap = Treap::with_salt(0);
+
+            for op in ops {
+                op.apply(&mut mock, &mut treap);
+            }
+
+            let values: Vec<_> = TreapIterMut::new(&mut treap).collect();
+            for value in values {
+                value.make_ascii_uppercase();
+            }
+            mock.make_ascii_uppercase();
+
+            prop_assert_eq!(treap.iter().cloned().collect::<String>(), mock);
+        }
+
         #[test]
         fn test_models(ops in prop::collection::vec(arb_op(), 1..2048)) {
             let mut mock = String::new();
