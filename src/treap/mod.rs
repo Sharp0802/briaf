@@ -75,7 +75,7 @@ impl<T> Treap<T> {
     }
 
     #[must_use]
-    pub fn iter(&self) -> TreapIter<T> {
+    pub fn iter(&self) -> TreapIter<'_, T> {
         TreapIter::new(self)
     }
 }
