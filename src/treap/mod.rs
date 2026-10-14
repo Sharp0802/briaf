@@ -276,7 +276,7 @@ impl<'a, T> Iterator for TreapIter<'a, T> {
     }
 }
 
-impl<'a, T> DoubleEndedIterator for TreapIter<'a, T> {
+impl<T> DoubleEndedIterator for TreapIter<'_, T> {
     fn next_back(&mut self) -> Option<Self::Item> {
         if self.finished {
             return None;
@@ -301,4 +301,65 @@ impl<'a, T> DoubleEndedIterator for TreapIter<'a, T> {
     }
 }
 
-impl<'a, T> FusedIterator for TreapIter<'a, T> {}
+impl<T> FusedIterator for TreapIter<'_, T> {}
+
+#[cfg(test)]
+mod tests {
+    use proptest::prelude::*;
+
+    use super::*;
+
+    #[derive(Clone, Debug)]
+    enum Op {
+        Insert(usize, String),
+        Remove(usize, usize),
+    }
+
+    impl Op {
+        fn apply(&self, mock: &mut String, treap: &mut Treap<String>) {
+            match self {
+                Self::Insert(off, str) => {
+                    let off = off % (mock.len() + 1);
+                    mock.insert_str(off, str);
+                    treap.insert(off, str.clone());
+                }
+                Self::Remove(off, len) => {
+                    let off = off % (mock.len() + 1);
+                    let max = mock.len() - off;
+                    let len = ((len + 1) % (max + 1)) - 1;
+
+                    let range = off..(off + len);
+                    mock.drain(range.clone());
+                    treap.remove(range);
+                }
+            }
+
+            let mut buffer = String::with_capacity(treap.len());
+            for item in treap.iter() {
+                buffer.push_str(item);
+            }
+
+            assert_eq!(mock.as_str(), buffer.as_str());
+        }
+    }
+
+    fn arb_op() -> impl Strategy<Value = Op> {
+        prop_oneof![
+            (any::<usize>(), any::<String>()).prop_map(|(off, str)| Op::Insert(off, str)),
+            (any::<usize>(), any::<usize>()).prop_map(|(off, len)| Op::Remove(off, len)),
+        ]
+        .boxed()
+    }
+
+    proptest! {
+        #[test]
+        fn test_models(ops in prop::collection::vec(arb_op(), 1..2048)) {
+            let mut mock = String::new();
+            let mut treap = Treap::new();
+
+            for op in ops {
+                op.apply(&mut mock, &mut treap);
+            }
+        }
+    }
+}
