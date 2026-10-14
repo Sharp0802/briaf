@@ -243,12 +243,11 @@ impl<'a, T> Iterator for TreapIter<'a, T> {
 
     fn next(&mut self) -> Option<Self::Item> {
         let id = self.front.pop()?;
-        let treap = self.treap;
 
-        self.push_left(treap.slab[id].rhs);
+        self.push_left(self.treap.slab[id].rhs);
         self.remaining -= 1;
 
-        Some(&treap.slab[id].val)
+        Some(&self.treap.slab[id].val)
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
@@ -264,6 +263,63 @@ impl<T> ExactSizeIterator for TreapIter<'_, T> {
 }
 
 impl<T> FusedIterator for TreapIter<'_, T> {}
+
+#[derive(Debug)]
+pub struct TreapIterMut<'a, T> {
+    treap: &'a mut Treap<T>,
+    front: Vec<usize>,
+    remaining: usize,
+}
+
+impl<'a, T> TreapIterMut<'a, T> {
+    fn new(treap: &'a mut Treap<T>) -> Self {
+        let root = treap.root;
+        let len = treap.slab.len();
+
+        let mut iter = Self {
+            treap,
+            front: Vec::new(),
+            remaining: len,
+        };
+
+        iter.push_left(root);
+
+        iter
+    }
+
+    fn push_left(&mut self, mut id: usize) {
+        while let Some(item) = self.treap.slab.get(id) {
+            self.front.push(id);
+            id = item.lhs;
+        }
+    }
+}
+
+impl<'a, T> Iterator for TreapIterMut<'a, T> {
+    type Item = &'a mut T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let id = self.front.pop()?;
+
+        self.push_left(self.treap.slab[id].rhs);
+        self.remaining -= 1;
+
+        Some(&mut self.treap.slab[id].val)
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let len = self.len();
+        (len, Some(len))
+    }
+}
+
+impl<T> ExactSizeIterator for TreapIterMut<'_, T> {
+    fn len(&self) -> usize {
+        self.remaining
+    }
+}
+
+impl<T> FusedIterator for TreapIterMut<'_, T> {}
 
 #[cfg(test)]
 mod tests {
