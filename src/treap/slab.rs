@@ -12,6 +12,7 @@ struct Slot<T> {
 pub struct Slab<T> {
     vec: Vec<Slot<T>>,
     free: usize,
+    len: usize,
 }
 
 impl<T> Slab<T> {
@@ -20,10 +21,19 @@ impl<T> Slab<T> {
         Self {
             vec: Vec::new(),
             free: 0,
+            len: 0,
         }
     }
 
+    #[must_use]
+    pub const fn len(&self) -> usize {
+        self.len
+    }
+
+    #[must_use]
     pub fn push(&mut self, value: T) -> usize {
+        self.len += 1;
+
         if let Some(slot) = self.vec.get_mut(self.free) {
             #[allow(unused_variables)]
             let old = slot.value.replace(value);
@@ -50,15 +60,18 @@ impl<T> Slab<T> {
         if old.is_some() {
             slot.next = self.free;
             self.free = key;
+            self.len -= 1;
         }
 
         old
     }
 
+    #[must_use]
     pub fn get(&self, key: usize) -> Option<&T> {
         self.vec.get(key)?.value.as_ref()
     }
 
+    #[must_use]
     pub fn get_mut(&mut self, key: usize) -> Option<&mut T> {
         self.vec.get_mut(key)?.value.as_mut()
     }
