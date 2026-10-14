@@ -12,6 +12,19 @@ pub struct Text<'a> {
     pub str: &'a str,
 }
 
+/// A shaped glyph.
+#[derive(Clone, Debug)]
+pub struct Glyph<'a> {
+    /// Position from origin, in pixels, in Y-up coordinate system.
+    pub base: [f32; 2],
+    /// Bitmap size, in pixels.
+    pub size: [u32; 2],
+    /// Origin advancement, in pixels, in Y-up coordinate system.
+    pub advance: [f32; 2],
+    /// Bitmap image, in `RGBA8Unorm` format.
+    pub bitmap: &'a [u8],
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 struct OwnedText {
     style: TextStyle,
@@ -110,6 +123,32 @@ impl TextBlock {
     {
         assert!(self.is_grapheme_boundary(range.start));
         assert!(self.is_grapheme_boundary(range.end));
+        todo!()
+    }
+
+    /// Returns an iterator over shaped glyphs of `self`.
+    #[must_use]
+    pub const fn shapes(&mut self) -> GlyphIter<'_> {
+        GlyphIter::new(self)
+    }
+}
+
+/// An iterator over shaped glyphs.
+#[derive(Debug)]
+pub struct GlyphIter<'a> {
+    block: &'a mut TextBlock,
+}
+
+impl<'a> GlyphIter<'a> {
+    const fn new(block: &'a mut TextBlock) -> Self {
+        Self { block }
+    }
+}
+
+impl<'a> Iterator for GlyphIter<'a> {
+    type Item = Glyph<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
         todo!()
     }
 }
