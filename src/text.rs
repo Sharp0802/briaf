@@ -3,26 +3,32 @@ use core::ops::Range;
 use crate::treap::Split;
 use crate::{BlockStyle, TextStyle, Treap};
 
-#[derive(Clone, Debug)]
-struct Part {
-    style: TextStyle,
-    range: Range<usize>,
+/// A text element.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct Text<'a> {
+    /// Text style.
+    pub style: TextStyle,
+    /// Text content.
+    pub str: &'a str,
 }
 
-impl Split for Part {
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+struct OwnedText {
+    style: TextStyle,
+    string: String,
+}
+
+impl Split for OwnedText {
     fn len(&self) -> usize {
-        self.range.len()
+        self.string.len()
     }
 
     fn split_off(&mut self, at: usize) -> Self {
-        assert!(self.range.start <= at && at <= self.range.end);
-
-        let end = self.range.end;
-        self.range.end = at;
+        assert!(at <= self.string.len());
 
         Self {
             style: self.style.clone(),
-            range: at..end,
+            string: self.string.split_off(at),
         }
     }
 }
@@ -31,8 +37,7 @@ impl Split for Part {
 #[derive(Clone, Debug)]
 pub struct TextBlock {
     style: BlockStyle,
-    source: String,
-    parts: Treap<Part>,
+    parts: Treap<OwnedText>,
 }
 
 impl TextBlock {
@@ -50,8 +55,51 @@ impl TextBlock {
     pub const fn with_salt(style: BlockStyle, salt: usize) -> Self {
         Self {
             style,
-            source: String::new(),
             parts: Treap::with_salt(salt),
         }
+    }
+
+    fn is_grapheme_boundary(&self, at: usize) -> bool {
+        todo!()
+    }
+
+    /// Inserts given text at the specified byte offset.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `at` is not valid grapheme boundary.
+    pub fn insert(&mut self, at: usize, text: &Text) {
+        assert!(self.is_grapheme_boundary(at));
+        todo!()
+    }
+
+    /// Appends given text at the end.
+    pub fn push(&mut self, text: &Text) {
+        todo!()
+    }
+
+    /// Removes text within the specified byte range.
+    ///
+    /// # Panics
+    ///
+    /// Panics if any end of specified range is not valid grapheme boundary.
+    pub fn remove(&mut self, range: Range<usize>) {
+        assert!(self.is_grapheme_boundary(range.start));
+        assert!(self.is_grapheme_boundary(range.end));
+        todo!()
+    }
+
+    /// Modifies the text style within the specified byte range.
+    ///
+    /// # Panics
+    ///
+    /// Panics if any end of specified range is not valid grapheme boundary.
+    pub fn style<F>(&mut self, range: Range<usize>, style: F)
+    where
+        F: Fn(&mut TextStyle),
+    {
+        assert!(self.is_grapheme_boundary(range.start));
+        assert!(self.is_grapheme_boundary(range.end));
+        todo!()
     }
 }
