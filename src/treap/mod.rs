@@ -437,13 +437,17 @@ impl<'a, T: Split> Iterator for TreapSlice<'a, T> {
         let offset = self.offset;
         let ret = if offset > 0 {
             self.offset = 0;
+            self.remaining -= item.val.len() - offset;
             let (_lhs, rhs) = item.val.split_at(offset);
             rhs
+        } else if self.remaining < item.val.len() {
+            self.remaining = 0;
+            let (lhs, _rhs) = item.val.split_at(self.remaining);
+            lhs
         } else {
+            self.remaining -= item.val.len();
             item.val.as_ref()
         };
-
-        self.remaining -= item.val.len() - offset;
 
         Some(ret)
     }
