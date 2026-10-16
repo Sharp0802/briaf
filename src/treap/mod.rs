@@ -39,9 +39,14 @@ pub trait Split: AsRef<Self::Ref> {
     #[allow(clippy::return_self_not_must_use)]
     fn split_off(&mut self, at: usize) -> Self;
 
-    /// Splits `self`
+    /// Returns a borrowed view of the given range without copying.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `range.start > range.end`, `range.end > self.len()`,
+    /// or either endpoint is not a valid boundary of `self`.
     #[must_use]
-    fn split_at(&self, at: usize) -> (&Self::Ref, &Self::Ref);
+    fn slice(&self, range: Range<usize>) -> &Self::Ref;
 }
 
 impl Split for String {
@@ -55,8 +60,8 @@ impl Split for String {
         self.split_off(at)
     }
 
-    fn split_at(&self, at: usize) -> (&Self::Ref, &Self::Ref) {
-        self.as_str().split_at(at)
+    fn slice(&self, range: Range<usize>) -> &Self::Ref {
+        &self[range]
     }
 }
 
@@ -238,35 +243,17 @@ impl<T: Split> Treap<T> {
         self.update(self.root);
     }
 
-    fn find_lower_bound(&self, id: usize, at: usize) -> (usize, usize) {
-        let Some(item) = self.slab.get(id) else {
-            return (0, usize::MAX);
-        };
-
-        if at == item.len {
-            return (0, usize::MAX);
-        }
-
-        let lhs = self.slab.get(item.lhs).map_or(0, |lhs| lhs.len);
-        let rhs = self.slab.get(item.rhs).map_or(0, |rhs| rhs.len);
-
-        if at < lhs {
-            self.find_lower_bound(item.lhs, at)
-        } else if (at - lhs) < item.val.len() || rhs == 0 {
-            (at - lhs, id)
-        } else {
-            self.find_lower_bound(item.rhs, at - lhs - item.val.len())
-        }
-    }
-
     /// Returns an iterator over elements within the given range.
     ///
     /// # Panics
     ///
-    /// Panics if start of the range is larger than end of the range.
+    /// Panics if `range.start > range.end` or `range.end > self.len()`.
+    /// Iteration may panic if an endpoint is not a valid boundary for `T`,
+    /// as described by [`Split::slice`].
     #[must_use]
     pub fn slice(&self, range: Range<usize>) -> TreapSlice<'_, T> {
         assert!(range.start <= range.end);
+        assert!(range.end <= self.len());
         TreapSlice::new(self, range)
     }
 
@@ -274,10 +261,12 @@ impl<T: Split> Treap<T> {
     ///
     /// # Panics
     ///
-    /// Panics if start of the range is larger than end of the range.
+    /// Panics if `range.start > range.end`, `range.end > self.len()`,
+    /// or an endpoint is not a valid boundary for `T`.
     #[must_use]
     pub fn slice_mut(&mut self, range: Range<usize>) -> TreapSliceMut<'_, T> {
         assert!(range.start <= range.end);
+        assert!(range.end <= self.len());
 
         let (l_mid, r) = self.split(self.root, range.end);
         let (l, mid) = self.split(l_mid, range.start);
@@ -395,27 +384,41 @@ pub struct TreapSlice<'a, T> {
 
 impl<'a, T: Split> TreapSlice<'a, T> {
     fn new(treap: &'a Treap<T>, range: Range<usize>) -> Self {
-        let (offset, start) = treap.find_lower_bound(treap.root, range.start);
-
         let mut iter = Self {
             treap,
             front: Vec::new(),
-            offset,
+            offset: 0,
             remaining: range.len(),
         };
 
-        iter.push_left(treap.root, start);
+        if iter.remaining == 0 {
+            return iter;
+        }
+
+        let mut id = treap.root;
+        let mut start = range.start;
+        while let Some(item) = treap.slab.get(id) {
+            let lhs = treap.slab.get(item.lhs).map_or(0, |lhs| lhs.len);
+
+            if start < lhs {
+                iter.front.push(id);
+                id = item.lhs;
+            } else if start - lhs < item.val.len() {
+                iter.front.push(id);
+                iter.offset = start - lhs;
+                break;
+            } else {
+                start -= lhs + item.val.len();
+                id = item.rhs;
+            }
+        }
 
         iter
     }
 
-    fn push_left(&mut self, mut id: usize, start: usize) {
+    fn push_left(&mut self, mut id: usize) {
         while let Some(item) = self.treap.slab.get(id) {
             self.front.push(id);
-            if id == start {
-                break;
-            }
-
             id = item.lhs;
         }
     }
@@ -432,22 +435,12 @@ impl<'a, T: Split> Iterator for TreapSlice<'a, T> {
         let id = self.front.pop()?;
         let item = &self.treap.slab[id];
 
-        self.push_left(item.rhs, usize::MAX);
+        self.push_left(item.rhs);
 
-        let offset = self.offset;
-        let ret = if offset > 0 {
-            self.offset = 0;
-            self.remaining -= item.val.len() - offset;
-            let (_lhs, rhs) = item.val.split_at(offset);
-            rhs
-        } else if self.remaining < item.val.len() {
-            self.remaining = 0;
-            let (lhs, _rhs) = item.val.split_at(self.remaining);
-            lhs
-        } else {
-            self.remaining -= item.val.len();
-            item.val.as_ref()
-        };
+        let take = self.remaining.min(item.val.len() - self.offset);
+        let ret = item.val.slice(self.offset..self.offset + take);
+        self.remaining -= take;
+        self.offset = 0;
 
         Some(ret)
     }
@@ -668,14 +661,13 @@ mod tests {
         #[test]
         fn test_iter_mut_models(ops in prop::collection::vec(arb_op(), 1..64)) {
             let mut mock = String::new();
-            let mut treap = Treap::with_salt(0);
+            let mut treap = Treap::default();
 
             for op in ops {
                 op.apply(&mut mock, &mut treap);
             }
 
-            let values: Vec<_> = TreapIterMut::new(&mut treap).collect();
-            for value in values {
+            for value in &mut treap {
                 value.make_ascii_uppercase();
             }
             mock.make_ascii_uppercase();
@@ -686,7 +678,7 @@ mod tests {
         #[test]
         fn test_models(ops in prop::collection::vec(arb_op(), 1..2048)) {
             let mut mock = String::new();
-            let mut treap = Treap::new();
+            let mut treap = Treap::default();
 
             for op in ops {
                 op.apply(&mut mock, &mut treap);
