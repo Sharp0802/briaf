@@ -11,18 +11,27 @@ mod slab;
 
 use slab::Slab;
 
-pub trait Split {
+pub trait Split: AsRef<Self::Ref> {
+    type Ref: ?Sized;
+
     fn len(&self) -> usize;
     fn split_off(&mut self, at: usize) -> Self;
+    fn split_at(&self, at: usize) -> (&Self::Ref, &Self::Ref);
 }
 
 impl Split for String {
+    type Ref = str;
+
     fn len(&self) -> usize {
         self.len()
     }
 
     fn split_off(&mut self, at: usize) -> Self {
         self.split_off(at)
+    }
+
+    fn split_at(&self, at: usize) -> (&Self::Ref, &Self::Ref) {
+        self.as_str().split_at(at)
     }
 }
 
@@ -183,6 +192,14 @@ impl<T: Split> Treap<T> {
         self.root = self.merge(l, r);
         self.update(self.root);
     }
+
+    pub fn slice(&self, range: Range<usize>) -> TreapIter<'_, T> {
+        todo!()
+    }
+
+    pub fn slice_mut(&mut self, range: Range<usize>) -> TreapIterMut<'_, T> {
+        todo!()
+    }
 }
 
 impl<T: PartialEq> PartialEq for Treap<T> {
@@ -239,17 +256,6 @@ impl<'a, T> Iterator for TreapIter<'a, T> {
         self.remaining -= 1;
 
         Some(&self.treap.slab[id].val)
-    }
-
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        let len = self.len();
-        (len, Some(len))
-    }
-}
-
-impl<T> ExactSizeIterator for TreapIter<'_, T> {
-    fn len(&self) -> usize {
-        self.remaining
     }
 }
 
@@ -311,17 +317,6 @@ impl<'a, T> Iterator for TreapIterMut<'a, T> {
 
         Some(&mut item.val)
     }
-
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        let len = self.len();
-        (len, Some(len))
-    }
-}
-
-impl<T> ExactSizeIterator for TreapIterMut<'_, T> {
-    fn len(&self) -> usize {
-        self.remaining
-    }
 }
 
 impl<T> FusedIterator for TreapIterMut<'_, T> {}
@@ -336,6 +331,7 @@ mod tests {
     enum Op {
         Insert(usize, String),
         Remove(usize, usize),
+        Slice(usize, usize),
     }
 
     impl Op {
@@ -355,6 +351,26 @@ mod tests {
                     mock.drain(range.clone());
                     treap.remove(range);
                 }
+                Self::Slice(off, len) => {
+                    let off = off % (mock.len() + 1);
+                    let max = mock.len() - off;
+                    let len = *len % (max + 1);
+
+                    let range = off..(off + len);
+
+                    let mut buffer = String::with_capacity(range.len());
+                    for item in treap.slice(range.clone()) {
+                        buffer.push_str(item);
+                    }
+
+                    let mut buffer_mut = String::with_capacity(range.len());
+                    for item in treap.slice_mut(range.clone()) {
+                        buffer_mut.push_str(item);
+                    }
+
+                    assert_eq!(&buffer, &mock[range.clone()]);
+                    assert_eq!(&buffer_mut, &mock[range]);
+                }
             }
 
             let mut buffer = String::with_capacity(treap.len());
@@ -370,6 +386,7 @@ mod tests {
         prop_oneof![
             (any::<usize>(), "[a-zA-Z0-9]{1,16}").prop_map(|(off, str)| Op::Insert(off, str)),
             (any::<usize>(), 1..16usize).prop_map(|(off, len)| Op::Remove(off, len)),
+            (any::<usize>(), any::<usize>()).prop_map(|(off, len)| Op::Slice(off, len)),
         ]
         .boxed()
     }
