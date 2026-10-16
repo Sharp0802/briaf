@@ -255,7 +255,7 @@ impl<T: Split> Treap<T> {
         } else if (at - lhs) < item.val.len() || rhs == 0 {
             (at - lhs, id)
         } else {
-            self.find_lower_bound(item.rhs, at - lhs - item.len)
+            self.find_lower_bound(item.rhs, at - lhs - item.val.len())
         }
     }
 
