@@ -412,11 +412,11 @@ impl<'a, T: Split> TreapSlice<'a, T> {
     fn push_left(&mut self, mut id: usize, start: usize) {
         while let Some(item) = self.treap.slab.get(id) {
             self.front.push(id);
-            id = item.lhs;
-
             if id == start {
                 break;
             }
+
+            id = item.lhs;
         }
     }
 }
