@@ -363,7 +363,7 @@ impl<'a, T> Iterator for TreapIter<'a, T> {
     fn next(&mut self) -> Option<Self::Item> {
         let id = self.front.pop()?;
 
-        debug_assert!(self.remaining > 1);
+        debug_assert!(self.remaining >= 1);
         self.push_left(self.treap.slab[id].rhs);
         self.remaining -= 1;
 
