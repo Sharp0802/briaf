@@ -5,6 +5,7 @@ extern crate alloc;
 
 mod font;
 mod fract;
+mod rand;
 mod style;
 mod text;
 mod treap;
