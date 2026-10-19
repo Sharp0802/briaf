@@ -12,10 +12,7 @@ mod slab;
 use slab::Slab;
 
 /// A splitable.
-pub trait Split: AsRef<Self::Ref> {
-    /// A reference type of `Self`.
-    type Ref: ?Sized;
-
+pub trait Split {
     /// Returns the length of `self`.
     #[must_use]
     fn len(&self) -> usize;
@@ -38,30 +35,15 @@ pub trait Split: AsRef<Self::Ref> {
     /// Note that validity of the offset is type-specific.
     #[allow(clippy::return_self_not_must_use)]
     fn split_off(&mut self, at: usize) -> Self;
-
-    /// Returns a borrowed view of the given range without copying.
-    ///
-    /// # Panics
-    ///
-    /// Panics if `range.start > range.end`, `range.end > self.len()`,
-    /// or either endpoint is not a valid boundary of `self`.
-    #[must_use]
-    fn slice(&self, range: Range<usize>) -> &Self::Ref;
 }
 
 impl Split for String {
-    type Ref = str;
-
     fn len(&self) -> usize {
         self.len()
     }
 
     fn split_off(&mut self, at: usize) -> Self {
         self.split_off(at)
-    }
-
-    fn slice(&self, range: Range<usize>) -> &Self::Ref {
-        &self[range]
     }
 }
 
@@ -123,12 +105,6 @@ impl<T> Treap<T> {
     #[must_use]
     pub fn iter(&self) -> TreapIter<'_, T> {
         TreapIter::new(self)
-    }
-
-    /// Returns a mutable iterator over elements.
-    #[must_use]
-    pub fn iter_mut(&mut self) -> TreapIterMut<'_, T> {
-        TreapIterMut::new(self)
     }
 }
 
@@ -243,20 +219,6 @@ impl<T: Split> Treap<T> {
         self.update(self.root);
     }
 
-    /// Returns an iterator over elements within the given range.
-    ///
-    /// # Panics
-    ///
-    /// Panics if `range.start > range.end` or `range.end > self.len()`.
-    /// Iteration may panic if an endpoint is not a valid boundary for `T`,
-    /// as described by [`Split::slice`].
-    #[must_use]
-    pub fn slice(&self, range: Range<usize>) -> TreapSlice<'_, T> {
-        assert!(range.start <= range.end);
-        assert!(range.end <= self.len());
-        TreapSlice::new(self, range)
-    }
-
     /// Returns a mutable iterator over elements within the given range.
     ///
     /// # Panics
@@ -305,15 +267,6 @@ impl<'a, T> IntoIterator for &'a Treap<T> {
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
-    }
-}
-
-impl<'a, T> IntoIterator for &'a mut Treap<T> {
-    type Item = &'a mut T;
-    type IntoIter = TreapIterMut<'a, T>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.iter_mut()
     }
 }
 
@@ -368,153 +321,6 @@ impl<'a, T> Iterator for TreapIter<'a, T> {
 impl<T> FusedIterator for TreapIter<'_, T> {}
 
 impl<T> ExactSizeIterator for TreapIter<'_, T> {
-    fn len(&self) -> usize {
-        self.remaining
-    }
-}
-
-/// An iterator over elements within specific range of the treap.
-#[derive(Clone, Debug)]
-pub struct TreapSlice<'a, T> {
-    treap: &'a Treap<T>,
-    front: Vec<usize>,
-    offset: usize,
-    remaining: usize,
-}
-
-impl<'a, T: Split> TreapSlice<'a, T> {
-    fn new(treap: &'a Treap<T>, range: Range<usize>) -> Self {
-        let mut iter = Self {
-            treap,
-            front: Vec::new(),
-            offset: 0,
-            remaining: range.len(),
-        };
-
-        if iter.remaining == 0 {
-            return iter;
-        }
-
-        let mut id = treap.root;
-        let mut start = range.start;
-        while let Some(item) = treap.slab.get(id) {
-            let lhs = treap.slab.get(item.lhs).map_or(0, |lhs| lhs.len);
-
-            if start < lhs {
-                iter.front.push(id);
-                id = item.lhs;
-            } else if start - lhs < item.val.len() {
-                iter.front.push(id);
-                iter.offset = start - lhs;
-                break;
-            } else {
-                start -= lhs + item.val.len();
-                id = item.rhs;
-            }
-        }
-
-        iter
-    }
-
-    fn push_left(&mut self, mut id: usize) {
-        while let Some(item) = self.treap.slab.get(id) {
-            self.front.push(id);
-            id = item.lhs;
-        }
-    }
-}
-
-impl<'a, T: Split> Iterator for TreapSlice<'a, T> {
-    type Item = &'a T::Ref;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.remaining == 0 {
-            return None;
-        }
-
-        let id = self.front.pop()?;
-        let item = &self.treap.slab[id];
-
-        self.push_left(item.rhs);
-
-        let take = self.remaining.min(item.val.len() - self.offset);
-        let ret = item.val.slice(self.offset..self.offset + take);
-        self.remaining -= take;
-        self.offset = 0;
-
-        Some(ret)
-    }
-}
-
-impl<T: Split> FusedIterator for TreapSlice<'_, T> {}
-
-/// An mutable iterator over all elements of the treap.
-pub struct TreapIterMut<'a, T> {
-    treap: &'a mut Treap<T>,
-    front: Vec<&'a mut Item<T>>,
-    remaining: usize,
-}
-
-impl<'a, T> TreapIterMut<'a, T> {
-    fn new(treap: &'a mut Treap<T>) -> Self {
-        let root = treap.root;
-        let len = treap.slab.len();
-
-        let mut iter = Self {
-            treap,
-            front: Vec::new(),
-            remaining: len,
-        };
-
-        iter.push_left(root);
-
-        iter
-    }
-
-    fn push_left(&mut self, mut id: usize) {
-        while let Some(item) = self.treap.slab.get_mut_ptr(id) {
-            // SAFETY: The exclusive treap borrow keeps the slab alive and fixed
-            // for 'a. Each node is visited once, including nodes held in front.
-            #[expect(unsafe_code)]
-            let item = unsafe { &mut *item };
-
-            id = item.lhs;
-            self.front.push(item);
-        }
-    }
-}
-
-impl<T: fmt::Debug> fmt::Debug for TreapIterMut<'_, T> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // NOTE: Formatting the treap would borrow values already yielded.
-        f.debug_struct("TreapIterMut")
-            .field("front", &self.front)
-            .field("remaining", &self.remaining)
-            .finish_non_exhaustive()
-    }
-}
-
-impl<'a, T> Iterator for TreapIterMut<'a, T> {
-    type Item = &'a mut T;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let item = self.front.pop()?;
-
-        self.push_left(item.rhs);
-        self.remaining -= 1;
-
-        Some(&mut item.val)
-    }
-
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        let len = self.len();
-        (len, Some(len))
-    }
-}
-
-impl<T> FusedIterator for TreapIterMut<'_, T> {}
-
-impl<T> ExactSizeIterator for TreapIterMut<'_, T> {
     fn len(&self) -> usize {
         self.remaining
     }
@@ -625,17 +431,11 @@ mod tests {
                     let range = off..(off + len);
 
                     let mut buffer = String::with_capacity(range.len());
-                    for item in treap.slice(range.clone()) {
+                    for item in treap.slice_mut(range.clone()) {
                         buffer.push_str(item);
                     }
 
-                    let mut buffer_mut = String::with_capacity(range.len());
-                    for item in treap.slice_mut(range.clone()) {
-                        buffer_mut.push_str(item);
-                    }
-
-                    assert_eq!(&buffer, &mock[range.clone()]);
-                    assert_eq!(&buffer_mut, &mock[range]);
+                    assert_eq!(&buffer, &mock[range]);
                 }
             }
 
@@ -658,23 +458,6 @@ mod tests {
     }
 
     proptest! {
-        #[test]
-        fn test_iter_mut_models(ops in prop::collection::vec(arb_op(), 1..64)) {
-            let mut mock = String::new();
-            let mut treap = Treap::default();
-
-            for op in ops {
-                op.apply(&mut mock, &mut treap);
-            }
-
-            for value in &mut treap {
-                value.make_ascii_uppercase();
-            }
-            mock.make_ascii_uppercase();
-
-            prop_assert_eq!(treap.iter().cloned().collect::<String>(), mock);
-        }
-
         #[test]
         fn test_models(ops in prop::collection::vec(arb_op(), 1..2048)) {
             let mut mock = String::new();
