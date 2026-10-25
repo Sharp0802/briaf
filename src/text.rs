@@ -1,13 +1,12 @@
 use core::ops::Range;
 
-use crate::treap::Split;
-use crate::{BlockStyle, TextStyle, Treap};
+use crate::{BlockStyle, Split, TextStyle, Treap};
 
 /// A text element.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Text<'a> {
     /// Text style.
-    pub style: TextStyle,
+    pub style: &'a TextStyle,
     /// Text content.
     pub str: &'a str,
 }
@@ -26,31 +25,35 @@ pub struct Glyph<'a> {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-struct OwnedText {
+struct Span {
     style: TextStyle,
-    string: String,
+    range: Range<usize>,
 }
 
-impl Split for OwnedText {
+impl Split for Span {
     fn len(&self) -> usize {
-        self.string.len()
+        self.range.len()
     }
 
     fn split_off(&mut self, at: usize) -> Self {
-        assert!(at <= self.string.len());
+        assert!(at <= self.len());
+
+        let end = self.range.end;
+        self.range.end = at;
 
         Self {
             style: self.style.clone(),
-            string: self.string.split_off(at),
+            range: at..end,
         }
     }
 }
 
 /// A styled text block.
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct TextBlock {
     style: BlockStyle,
-    parts: Treap<OwnedText>,
+    buffer: String,
+    spans: Treap<Span>,
 }
 
 impl TextBlock {
@@ -59,16 +62,17 @@ impl TextBlock {
     #[cfg(feature = "std")]
     pub fn new(style: BlockStyle) -> Self {
         let mut this = Self::with_salt(style, 0);
-        this.parts = Treap::new();
+        this.spans = Treap::new();
         this
     }
 
     /// Creates a new [`TextBlock`] with given salt value.
     #[must_use]
-    pub fn with_salt(style: BlockStyle, salt: usize) -> Self {
+    pub const fn with_salt(style: BlockStyle, salt: usize) -> Self {
         Self {
             style: style.norm(),
-            parts: Treap::with_salt(salt),
+            buffer: String::new(),
+            spans: Treap::with_salt(salt),
         }
     }
 
@@ -82,23 +86,23 @@ impl TextBlock {
     ///
     /// Panics if `at` is not valid grapheme boundary.
     pub fn insert(&mut self, at: usize, text: &Text) {
-        let text = Text {
+        assert!(self.is_grapheme_boundary(at));
+
+        let start = self.buffer.len();
+        self.buffer.push_str(text.str);
+        let end = self.buffer.len();
+
+        let span = Span {
             style: text.style.clone().norm(),
-            str: text.str,
+            range: start..end,
         };
 
-        assert!(self.is_grapheme_boundary(at));
-        todo!()
+        self.spans.insert(at, span);
     }
 
     /// Appends given text at the end.
     pub fn push(&mut self, text: &Text) {
-        let text = Text {
-            style: text.style.clone().norm(),
-            str: text.str,
-        };
-
-        todo!()
+        self.insert(self.spans.len(), text);
     }
 
     /// Removes text within the specified byte range.
@@ -109,7 +113,8 @@ impl TextBlock {
     pub fn remove(&mut self, range: Range<usize>) {
         assert!(self.is_grapheme_boundary(range.start));
         assert!(self.is_grapheme_boundary(range.end));
-        todo!()
+
+        self.spans.remove(range);
     }
 
     /// Modifies the text style within the specified byte range.
@@ -123,7 +128,10 @@ impl TextBlock {
     {
         assert!(self.is_grapheme_boundary(range.start));
         assert!(self.is_grapheme_boundary(range.end));
-        todo!()
+
+        for span in self.spans.slice_mut(range) {
+            style(&mut span.style);
+        }
     }
 
     /// Returns an iterator over shaped glyphs of `self`.
