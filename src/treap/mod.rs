@@ -11,28 +11,15 @@ mod slab;
 
 use slab::Slab;
 
-/// A splitable.
 pub trait Split {
-    /// Returns the length of `self`.
     #[must_use]
     fn len(&self) -> usize;
 
-    /// Returns whether the length of `self` is zero.
     #[must_use]
     fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
-    /// Cuts `self` at specified offset, returning the right part.
-    ///
-    /// Note that `self` becomes `[0, at)` slice of prior `self`,
-    /// while `[at, len)` slice of prior `self` is returned.
-    ///
-    /// # Panics
-    ///
-    /// Panics if `at` is not valid boundary of `self`.
-    ///
-    /// Note that validity of the offset is type-specific.
     #[allow(clippy::return_self_not_must_use)]
     fn split_off(&mut self, at: usize) -> Self;
 }
@@ -56,7 +43,6 @@ struct Item<T> {
     rhs: usize,
 }
 
-/// An implicit treap.
 #[derive(Clone, Debug)]
 pub struct Treap<T> {
     salt: usize,
@@ -65,7 +51,6 @@ pub struct Treap<T> {
 }
 
 impl<T> Treap<T> {
-    /// Creates a new [`Treap`] with random salts.
     #[cfg(feature = "std")]
     #[must_use]
     pub fn new() -> Self {
@@ -79,7 +64,6 @@ impl<T> Treap<T> {
         Self::with_salt(salt as usize)
     }
 
-    /// Creates a new [`Treap`] with given salts.
     #[must_use]
     pub const fn with_salt(salt: usize) -> Self {
         Self {
@@ -89,19 +73,16 @@ impl<T> Treap<T> {
         }
     }
 
-    /// Returns total length of contents.
     #[must_use]
     pub fn len(&self) -> usize {
         self.slab.get(self.root).map_or(0, |root| root.len)
     }
 
-    /// Returns whether the content is empty.
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
-    /// Returns an iterator over elements.
     #[must_use]
     pub fn iter(&self) -> TreapIter<'_, T> {
         TreapIter::new(self)
@@ -190,7 +171,6 @@ impl<T: Split> Treap<T> {
         }
     }
 
-    /// Inserts given value at specified offset.
     pub fn insert(&mut self, at: usize, val: T) {
         let (l, r) = self.split(self.root, at);
         let id = self.alloc(val);
@@ -210,7 +190,6 @@ impl<T: Split> Treap<T> {
         self.slab.pop(id);
     }
 
-    /// Removes a range from `self`.
     pub fn remove(&mut self, range: Range<usize>) {
         let (l_mid, r) = self.split(self.root, range.end);
         let (l, mid) = self.split(l_mid, range.start);
@@ -219,12 +198,6 @@ impl<T: Split> Treap<T> {
         self.update(self.root);
     }
 
-    /// Returns a mutable iterator over elements within the given range.
-    ///
-    /// # Panics
-    ///
-    /// Panics if `range.start > range.end`, `range.end > self.len()`,
-    /// or an endpoint is not a valid boundary for `T`.
     #[must_use]
     pub fn slice_mut(&mut self, range: Range<usize>) -> TreapSliceMut<'_, T> {
         assert!(range.start <= range.end);
@@ -270,7 +243,6 @@ impl<'a, T> IntoIterator for &'a Treap<T> {
     }
 }
 
-/// An iterator over all elements of the treap.
 #[derive(Clone, Debug)]
 pub struct TreapIter<'a, T> {
     treap: &'a Treap<T>,
@@ -326,7 +298,6 @@ impl<T> ExactSizeIterator for TreapIter<'_, T> {
     }
 }
 
-/// An mutable iterator over elements within specific range of the treap.
 pub struct TreapSliceMut<'a, T: Split> {
     treap: &'a mut Treap<T>,
     front: Vec<&'a mut Item<T>>,

@@ -15,4 +15,4 @@ pub use font::*;
 pub use fract::*;
 pub use style::*;
 pub use text::*;
-use treap::Treap;
+use treap::{Split, Treap};
