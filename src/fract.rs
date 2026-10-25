@@ -9,6 +9,14 @@ impl Fract {
     /// A zero.
     pub const ZERO: Self = Self(0);
 
+    pub(crate) const fn is_positive(self) -> bool {
+        self.0.is_positive()
+    }
+
+    pub(crate) const fn abs(self) -> Self {
+        Self(self.0.abs())
+    }
+
     /// Creates a new [`Fract`] from [`f32`].
     ///
     /// Note that precision is not guarenteed.

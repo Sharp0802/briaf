@@ -28,26 +28,18 @@ pub struct BlockStyle {
 }
 
 impl BlockStyle {
-    pub(crate) fn norm(self) -> Self {
+    pub(crate) const fn norm(self) -> Self {
         let width = match self.width {
-            Some(v) if v > Fract::ZERO => Some(v),
+            Some(v) if v.is_positive() => Some(v),
             _ => None,
         };
 
-        let line_spacing = self.line_spacing.max(Fract::ZERO);
+        let line_spacing = self.line_spacing.abs();
 
-        if width.is_none() {
-            Self {
-                width,
-                line_spacing,
-                ..Default::default()
-            }
-        } else {
-            Self {
-                width,
-                line_spacing,
-                ..self
-            }
+        Self {
+            width,
+            line_spacing,
+            ..self
         }
     }
 }
