@@ -1,10 +1,25 @@
-use crate::{Cache, TextStyle};
+use fontdb::ID;
+
+use crate::{Cache, Context, Fract, Tilt};
+
+/// A style of the glyph.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct GlyphStyle {
+    /// Font.
+    pub font: ID,
+    /// Font size, in pixels, clamped to `1..` if out of that.
+    pub size: Fract,
+    /// Font weight, clamped to `1..1000` if out of that.
+    pub weight: Fract,
+    /// Text tilting.
+    pub tilt: Option<Tilt>,
+}
 
 /// A key of glyph cache.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct GlyphKey {
     /// Text style.
-    pub style: TextStyle,
+    pub style: GlyphStyle,
     /// Glyph id.
     pub glyph: u16,
 }
@@ -35,9 +50,20 @@ pub trait GlyphCache {
     fn tick(&mut self);
 }
 
+/// A glyph cache, with using bitmap bytes in RGBA8 format.
 #[derive(Clone, Debug)]
 pub struct BitmapGlyphCache {
     cache: Cache<GlyphKey, Glyph<Box<[u8]>>>,
+    cx: Context,
+}
+
+impl Default for BitmapGlyphCache {
+    fn default() -> Self {
+        Self {
+            cache: Cache::new(),
+            cx: Context::new(),
+        }
+    }
 }
 
 impl GlyphCache for BitmapGlyphCache {
@@ -45,7 +71,15 @@ impl GlyphCache for BitmapGlyphCache {
 
     fn fetch(&mut self, key: GlyphKey) {
         self.cache.fetch(key, |key| {
-            todo!();
+            let mut buffer = Vec::new();
+            self.cx
+                .rasterize(&key.style, key.glyph, &mut buffer)
+                .map(|glyph| Glyph {
+                    base: glyph.base,
+                    size: glyph.size,
+                    advance: glyph.advance,
+                    bitmap: buffer.into_boxed_slice(),
+                })
         });
     }
 
