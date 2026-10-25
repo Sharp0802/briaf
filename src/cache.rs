@@ -32,9 +32,9 @@ impl<K: Hash + Eq, V> Cache<K, V> {
         }
     }
 
-    pub fn fetch<F>(&mut self, key: K, default: F)
+    pub fn fetch<E, F>(&mut self, key: K, default: F) -> Result<(), E>
     where
-        F: FnOnce(&K) -> V,
+        F: FnOnce(&K) -> Result<V, E>,
     {
         let hash = self.hash.hash_one(&key);
 
@@ -43,7 +43,7 @@ impl<K: Hash + Eq, V> Cache<K, V> {
                 entry.get_mut().ts = self.now;
             }
             Entry::Vacant(entry) => {
-                let val = default(&key);
+                let val = default(&key)?;
                 entry.insert(Item {
                     key,
                     val,
@@ -52,6 +52,8 @@ impl<K: Hash + Eq, V> Cache<K, V> {
                 });
             }
         }
+
+        Ok(())
     }
 
     #[must_use]

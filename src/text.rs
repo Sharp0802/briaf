@@ -1,6 +1,6 @@
 use core::ops::Range;
 
-use crate::{BlockStyle, Split, TextStyle, Treap};
+use crate::{BlockStyle, Glyph, GlyphCache, Split, TextStyle, Treap};
 
 /// A text element.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -9,19 +9,6 @@ pub struct Text<'a> {
     pub style: &'a TextStyle,
     /// Text content.
     pub str: &'a str,
-}
-
-/// A shaped glyph.
-#[derive(Clone, Debug)]
-pub struct Glyph<'a> {
-    /// Position from origin, in pixels, in Y-up coordinate system.
-    pub base: [f32; 2],
-    /// Bitmap size, in pixels.
-    pub size: [u32; 2],
-    /// Origin advancement, in pixels, in Y-up coordinate system.
-    pub advance: [f32; 2],
-    /// Bitmap image, in `RGBA8Unorm` format.
-    pub bitmap: &'a [u8],
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -136,25 +123,26 @@ impl TextBlock {
 
     /// Returns an iterator over shaped glyphs of `self`.
     #[must_use]
-    pub const fn shapes(&mut self) -> GlyphIter<'_> {
-        GlyphIter::new(self)
+    pub const fn shapes<'a, T>(&'a mut self, cache: &'a GlyphCache<T>) -> GlyphIter<'a, T> {
+        GlyphIter::new(self, cache)
     }
 }
 
 /// An iterator over shaped glyphs.
 #[derive(Debug)]
-pub struct GlyphIter<'a> {
+pub struct GlyphIter<'a, T> {
     block: &'a mut TextBlock,
+    cache: &'a GlyphCache<T>,
 }
 
-impl<'a> GlyphIter<'a> {
-    const fn new(block: &'a mut TextBlock) -> Self {
-        Self { block }
+impl<'a, T> GlyphIter<'a, T> {
+    const fn new(block: &'a mut TextBlock, cache: &'a GlyphCache<T>) -> Self {
+        Self { block, cache }
     }
 }
 
-impl<'a> Iterator for GlyphIter<'a> {
-    type Item = Glyph<'a>;
+impl<'a, T> Iterator for GlyphIter<'a, T> {
+    type Item = Glyph<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
         todo!()
