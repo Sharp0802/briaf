@@ -123,26 +123,32 @@ impl TextBlock {
 
     /// Returns an iterator over shaped glyphs of `self`.
     #[must_use]
-    pub const fn shapes<'a, T>(&'a mut self, cache: &'a GlyphCache<T>) -> GlyphIter<'a, T> {
+    pub const fn shapes<'a, C>(&'a mut self, cache: &'a C) -> GlyphIter<'a, C>
+    where
+        C: GlyphCache,
+    {
         GlyphIter::new(self, cache)
     }
 }
 
 /// An iterator over shaped glyphs.
 #[derive(Debug)]
-pub struct GlyphIter<'a, T> {
+pub struct GlyphIter<'a, C> {
     block: &'a mut TextBlock,
-    cache: &'a GlyphCache<T>,
+    cache: &'a C,
 }
 
-impl<'a, T> GlyphIter<'a, T> {
-    const fn new(block: &'a mut TextBlock, cache: &'a GlyphCache<T>) -> Self {
+impl<'a, C> GlyphIter<'a, C> {
+    const fn new(block: &'a mut TextBlock, cache: &'a C) -> Self {
         Self { block, cache }
     }
 }
 
-impl<'a, T> Iterator for GlyphIter<'a, T> {
-    type Item = Glyph<T>;
+impl<'a, C> Iterator for GlyphIter<'a, C>
+where
+    C: GlyphCache,
+{
+    type Item = &'a Glyph<C::Data>;
 
     fn next(&mut self) -> Option<Self::Item> {
         todo!()
