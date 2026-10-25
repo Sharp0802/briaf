@@ -3,6 +3,7 @@
 
 extern crate alloc;
 
+mod cache;
 mod font;
 mod fract;
 mod rand;
