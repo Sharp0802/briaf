@@ -4,20 +4,20 @@
 extern crate alloc;
 
 mod cache;
-mod cx;
 mod font;
 mod fract;
 mod glyph;
 mod rand;
+mod raster;
 mod style;
 mod text;
 mod treap;
 
 use cache::Cache;
-use cx::Context;
 pub use font::*;
 pub use fract::*;
 pub use glyph::*;
+use raster::Raster;
 pub use style::*;
 pub use text::*;
 use treap::{Split, Treap};

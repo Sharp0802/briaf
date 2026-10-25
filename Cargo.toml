@@ -24,9 +24,9 @@ no_std = [
 fontdb = { version = "0.24", default-features = false }
 harfrust = { version = "0.14", default-features = false }
 hashbrown = "0.17"
-skrifa = { version = "0.48", default-features = false }
+skrifa = { version = "0.49", default-features = false }
 unicode-segmentation = "1.13"
-zeno = { version = "0.3", default-features = false }
+zeno = { version = "0.3", default-features = false, features = ["eval"] }
 
 [dev-dependencies]
 criterion = "0.8"
